@@ -1,0 +1,206 @@
+<template>
+    <div style="background:#0a0a0a; color:#f0f0f0; padding:28px; max-width:680px; margin:0 auto; font-family:'Segoe UI',system-ui,sans-serif; box-sizing:border-box; min-height:100vh;">
+
+        <!-- HEADER -->
+        <div style="display:flex; align-items:center; gap:14px; border-bottom:1px solid #1e1e1e; padding-bottom:18px; margin-bottom:26px;">
+            <span style="font-size:26px;">🎥 🎬</span>
+            <h1 style="color:#e8002d; font-size:20px; font-weight:800; letter-spacing:3px; text-transform:uppercase; margin:0;">MOVIE TICKET BOOKING</h1>
+        </div>
+
+        <!-- LOADING SPINNER -->
+        <template if:true={isLoading}>
+            <div style="display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,0.7); border-radius:10px; margin-bottom:16px;">
+                <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- SECTION 1: PERSONAL INFORMATION -->
+        <div style="background:#111111; border:1px solid #1e1e1e; border-radius:10px; padding:22px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+                <span style="width:32px; height:32px; background:#0f1e30; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:16px;">👤</span>
+                <h2 style="font-size:11px; font-weight:700; letter-spacing:2.5px; color:#888888; text-transform:uppercase; margin:0;">PERSONAL INFORMATION</h2>
+            </div>
+
+            <div style="display:flex; gap:16px; margin-bottom:14px;">
+                <div style="flex:1; min-width:0;">
+                    <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">FIRST NAME</label>
+                    <input type="text" style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; font-family:'Segoe UI',system-ui,sans-serif;"
+                        placeholder="First name" value={formData.firstName} data-field="firstName" onchange={handleInputChange} />
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">LAST NAME</label>
+                    <input type="text" style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; font-family:'Segoe UI',system-ui,sans-serif;"
+                        placeholder="Last name" value={formData.lastName} data-field="lastName" onchange={handleInputChange} />
+                </div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">PHONE NUMBER</label>
+                <input type="tel" style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; font-family:'Segoe UI',system-ui,sans-serif;"
+                    placeholder="Enter phone number" maxlength="10" value={formData.phone} data-field="phone" onchange={handleInputChange} />
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">EMAIL ADDRESS</label>
+                <input type="email" style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; font-family:'Segoe UI',system-ui,sans-serif;"
+                    placeholder="Enter email" value={formData.email} data-field="email" onchange={handleInputChange} onblur={validateEmail} />
+                <template if:true={emailError}>
+                    <span style="color:#e8002d; font-size:11px; margin-top:5px; display:block;">{emailError}</span>
+                </template>
+            </div>
+        </div>
+
+        <!-- SECTION 2: VENUE & SHOW DETAILS -->
+        <div style="background:#111111; border:1px solid #1e1e1e; border-radius:10px; padding:22px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+                <span style="width:32px; height:32px; background:#1e0f30; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:16px;">🎭</span>
+                <h2 style="font-size:11px; font-weight:700; letter-spacing:2.5px; color:#888888; text-transform:uppercase; margin:0;">VENUE &amp; SHOW DETAILS</h2>
+            </div>
+
+            <!-- THEATRE -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">THEATRE</label>
+                <select style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; appearance:none; -webkit-appearance:none; cursor:pointer; font-family:'Segoe UI',system-ui,sans-serif;"
+                    data-field="theatreId" onchange={handleTheatreChange}>
+                    <option value="" style="background:#1a1a1a; color:#f0f0f0;">-- Select Theatre --</option>
+                    <template for:each={theatres} for:item="theatre">
+                        <option key={theatre.Id} value={theatre.Id} style="background:#1a1a1a; color:#f0f0f0;">{theatre.Name}</option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- MOVIE SEARCH (typeahead) -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">MOVIE NAME</label>
+                <div style="position:relative;">
+                    <input type="text"
+                        style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; font-family:'Segoe UI',system-ui,sans-serif;"
+                        placeholder="Type to search or add new movie..."
+                        value={movieSearchTerm}
+                        onkeyup={handleMovieSearch}
+                        onfocus={handleMovieSearch}
+                        onblur={handleMovieBlur}
+                        disabled={isMovieSearchDisabled} />
+
+                    <template if:true={showMovieDropdown}>
+                        <ul style="position:absolute; top:100%; left:0; right:0; background:#1a1a1a; border:1px solid #2a2a2a; border-top:none; border-radius:0 0 7px 7px; max-height:210px; overflow-y:auto; z-index:9999; list-style:none; margin:0; padding:0; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+
+                            <!-- Existing movies (database madhe aahet) -->
+                            <template for:each={filteredMovies} for:item="movie">
+                                <li key={movie.Id}
+                                    style="padding:11px 14px; cursor:pointer; border-bottom:1px solid #222222; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box;"
+                                    data-id={movie.Id} data-name={movie.Name} data-price={movie.Ticket_Price__c}
+                                    onmousedown={handleMovieSelect}>
+                                    <span style="color:#f0f0f0; font-size:13px; font-weight:500;">{movie.Name}</span>
+                                    <span style="color:#22c55e; font-size:12px; font-weight:600;">₹{movie.Ticket_Price__c}</span>
+                                </li>
+                            </template>
+
+                            <!-- Add New Movie option (database madhe nahi) -->
+                            <template if:true={showAddNewOption}>
+                                <li style="padding:11px 14px; cursor:pointer; background:#0a1e12; border-top:1px dashed #22c55e; display:flex; align-items:center; box-sizing:border-box;"
+                                    onmousedown={handleAddNewMovie}>
+                                    <span style="font-size:14px; margin-right:8px;">➕</span>
+                                    <span style="color:#22c55e; font-size:12px; font-weight:500;">Add new movie: &quot;{movieSearchTerm}&quot;</span>
+                                </li>
+                            </template>
+
+                            <!-- No movies in theatre -->
+                            <template if:true={noMoviesAtAll}>
+                                <li style="padding:13px 14px; color:#555555; font-size:12px; text-align:center; font-style:italic;">
+                                    No movies in this theatre yet. Type to add a new one.
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                </div>
+            </div>
+
+            <!-- SHOW TIME -->
+            <!-- ✅ onchange = handleShowTimeChange → seats load होतात -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">SHOW TIME</label>
+                <select style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; appearance:none; -webkit-appearance:none; font-family:'Segoe UI',system-ui,sans-serif;"
+                    data-field="showTime" onchange={handleShowTimeChange}>
+                    <option value="" style="background:#1a1a1a; color:#f0f0f0;">Select Show Time</option>
+                    <template for:each={showTimeOptions} for:item="option">
+                        <option key={option.value} value={option.value} style="background:#1a1a1a; color:#f0f0f0;">{option.label}</option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- SEAT COUNTERS -->
+            <div style="display:flex; gap:14px; margin-top:16px;">
+                <div style="flex:1; background:#161616; border-radius:8px; padding:20px; text-align:center; border-left:3px solid #e8002d; box-sizing:border-box;">
+                    <span style="font-size:26px; font-weight:800; color:#f0f0f0; display:block; margin-bottom:4px;">{bookedSeats}</span>
+                    <span style="font-size:10px; font-weight:700; letter-spacing:2px; color:#555555; text-transform:uppercase;">BOOKED</span>
+                </div>
+                <div style="flex:1; background:#161616; border-radius:8px; padding:20px; text-align:center; border-left:3px solid #22c55e; box-sizing:border-box;">
+                    <span style="font-size:26px; font-weight:800; color:#f0f0f0; display:block; margin-bottom:4px;">{availableSeats}</span>
+                    <span style="font-size:10px; font-weight:700; letter-spacing:2px; color:#555555; text-transform:uppercase;">AVAILABLE</span>
+                </div>
+            </div>
+            <p style="font-size:10px; color:#444444; text-align:center; margin-top:10px; margin-bottom:0; font-style:italic;">
+                Select Movie + Show Time to see seat availability for that slot
+            </p>
+        </div>
+
+        <!-- SECTION 3: TICKET CONFIGURATION -->
+        <div style="background:#111111; border:1px solid #1e1e1e; border-radius:10px; padding:22px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+                <span style="width:32px; height:32px; background:#0a1e12; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:16px;">💳</span>
+                <h2 style="font-size:11px; font-weight:700; letter-spacing:2.5px; color:#888888; text-transform:uppercase; margin:0;">TICKET CONFIGURATION</h2>
+            </div>
+
+            <div style="display:flex; gap:16px; margin-bottom:14px;">
+                <div style="flex:1; min-width:0;">
+                    <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">TICKET TYPE</label>
+                    <select style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; appearance:none; -webkit-appearance:none; font-family:'Segoe UI',system-ui,sans-serif;"
+                        data-field="ticketType" onchange={handleTicketTypeChange}>
+                        <option value="" style="background:#1a1a1a; color:#f0f0f0;">Type</option>
+                        <option value="Silver"   style="background:#1a1a1a; color:#f0f0f0;">Silver   - ₹150</option>
+                        <option value="Gold"     style="background:#1a1a1a; color:#f0f0f0;">Gold     - ₹250</option>
+                        <option value="Platinum" style="background:#1a1a1a; color:#f0f0f0;">Platinum - ₹300</option>
+                    </select>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">NO. OF TICKETS</label>
+                    <input type="number" style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif;"
+                        min="1" max="10" value={formData.numberOfSeats} data-field="numberOfSeats" onchange={handleSeatsChange} />
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#161616; border:1px dashed #2a2a2a; border-radius:7px; padding:14px 18px; margin-top:14px;">
+                <span style="font-size:11px; color:#666666; font-weight:600; letter-spacing:1px; text-transform:uppercase;">TICKET PRICE:</span>
+                <span style="font-size:17px; font-weight:700; color:#22c55e;">₹{formData.ticketPrice}</span>
+            </div>
+        </div>
+
+        <!-- PAYMENT MODE -->
+        <div style="background:#111111; border:1px solid #1e1e1e; border-radius:10px; padding:22px; margin-bottom:16px;">
+            <div style="text-align:center; font-size:11px; font-weight:700; letter-spacing:2px; color:#555555; text-transform:uppercase; border-top:1px dashed #222222; border-bottom:1px dashed #222222; padding:13px 0; margin-bottom:14px;">PAYMENT MODE</div>
+            <select style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; appearance:none; -webkit-appearance:none; font-family:'Segoe UI',system-ui,sans-serif;"
+                data-field="paymentMode" onchange={handleInputChange}>
+                <option value=""            style="background:#1a1a1a; color:#f0f0f0;">Select Method</option>
+                <option value="UPI"         style="background:#1a1a1a; color:#f0f0f0;">UPI</option>
+                <option value="Credit Card" style="background:#1a1a1a; color:#f0f0f0;">Credit Card</option>
+                <option value="Debit Card"  style="background:#1a1a1a; color:#f0f0f0;">Debit Card</option>
+                <option value="Net Banking" style="background:#1a1a1a; color:#f0f0f0;">Net Banking</option>
+                <option value="Cash"        style="background:#1a1a1a; color:#f0f0f0;">Cash</option>
+            </select>
+        </div>
+
+        <!-- TOTAL AMOUNT -->
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 0;">
+            <span style="font-size:13px; font-weight:700; letter-spacing:1.5px; color:#f0f0f0; text-transform:uppercase;">TOTAL AMOUNT:</span>
+            <span style="font-size:22px; font-weight:800; color:#e8002d;">₹ {totalAmount}</span>
+        </div>
+
+        <!-- CONFIRM BUTTON -->
+        <button style="width:100%; background:#e8002d; color:#ffffff; border:none; padding:16px; font-size:14px; font-weight:700; letter-spacing:2px; border-radius:8px; cursor:pointer; text-transform:uppercase; font-family:'Segoe UI',system-ui,sans-serif;"
+            onclick={handleConfirmBooking} disabled={isLoading}>
+            🎬 CONFIRM BOOKING
+        </button>
+
+    </div>
+</template>

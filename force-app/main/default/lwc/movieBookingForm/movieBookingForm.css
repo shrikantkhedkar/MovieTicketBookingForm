@@ -1,0 +1,401 @@
+:host {
+    display: block;
+    background: #0a0a0a !important;
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #f0f0f0 !important;
+
+    /* SLDS CSS variables override */
+    --slds-c-input-color-background: #1a1a1a !important;
+    --slds-c-input-color-border: #2a2a2a !important;
+    --slds-c-input-text-color: #f0f0f0 !important;
+    --lwc-colorBackground: #0a0a0a !important;
+    --lwc-colorBackgroundAlt: #111111 !important;
+    --lwc-colorTextDefault: #f0f0f0 !important;
+    --lwc-colorBorder: #2a2a2a !important;
+}
+
+/* Force all text inside host to be light */
+
+
+/* ── CONTAINER ── */
+.booking-container {
+    background: #0a0a0a !important;
+    color: #f0f0f0 !important;
+    padding: 28px;
+    max-width: 680px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* ── HEADER ── */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid #1e1e1e;
+    padding-bottom: 18px;
+    margin-bottom: 26px;
+}
+
+.header-icon {
+    font-size: 26px;
+}
+
+.header-title {
+    color: #e8002d !important;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* ── SPINNER ── */
+.spinner-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+/* ── SECTION CARDS ── */
+.section {
+    background: #111111 !important;
+    border: 1px solid #1e1e1e !important;
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.section-icon.personal { background: #0f1e30 !important; }
+.section-icon.venue    { background: #1e0f30 !important; }
+.section-icon.ticket   { background: #0a1e12 !important; }
+
+.section-title {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 2.5px;
+    color: #888888 !important;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* ── ROWS & COLS ── */
+.row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.col {
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.col-full {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* ── LABELS ── */
+.field-label {
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.5px;
+    color: #555555 !important;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+}
+
+/* ── INPUTS & SELECTS ── */
+.custom-input {
+    width: 100% !important;
+    background: #1a1a1a !important;
+    border: 1px solid #2a2a2a !important;
+    color: #f0f0f0 !important;
+    padding: 11px 14px !important;
+    border-radius: 7px !important;
+    font-size: 13px !important;
+    font-family: 'Segoe UI', system-ui, sans-serif !important;
+    transition: border-color 0.2s, background 0.2s;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    outline: none;
+}
+
+.custom-input:focus {
+    border-color: #e8002d !important;
+    background: #1f1f1f !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.custom-input:disabled {
+    opacity: 0.35 !important;
+    cursor: not-allowed !important;
+}
+
+.custom-input::placeholder {
+    color: #444444 !important;
+}
+
+select.custom-input {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath fill='%23666' d='M5 7L0 0h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 13px center !important;
+    padding-right: 34px !important;
+}
+
+select.custom-input option {
+    background: #1a1a1a !important;
+    color: #f0f0f0 !important;
+}
+
+/* ── AUTOCOMPLETE ── */
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #1a1a1a !important;
+    border: 1px solid #2a2a2a !important;
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    max-height: 210px;
+    overflow-y: auto;
+    z-index: 9999;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+.autocomplete-item {
+    padding: 11px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #222222 !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+    box-sizing: border-box;
+}
+
+.autocomplete-item:hover {
+    background: #252525 !important;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none !important;
+}
+
+.movie-name {
+    color: #f0f0f0 !important;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.movie-price {
+    color: #22c55e !important;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.add-new-item {
+    background: #0a1e12 !important;
+    border-top: 1px dashed #22c55e !important;
+}
+
+.add-new-item:hover {
+    background: #0f2a18 !important;
+}
+
+.add-icon {
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+.add-text {
+    color: #22c55e !important;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.add-text strong {
+    color: #f0f0f0 !important;
+}
+
+.autocomplete-empty {
+    padding: 13px 14px;
+    color: #555555 !important;
+    font-size: 12px;
+    text-align: center;
+    font-style: italic;
+}
+
+/* ── SEAT COUNTERS ── */
+.counters-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.counter-box {
+    flex: 1;
+    background: #161616 !important;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    border-left: 3px solid transparent;
+    box-sizing: border-box;
+}
+
+.booked-box    { border-left-color: #e8002d !important; }
+.available-box { border-left-color: #22c55e !important; }
+
+.counter-value {
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    color: #f0f0f0 !important;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.counter-label {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px;
+    color: #555555 !important;
+    text-transform: uppercase;
+}
+
+/* ── PRICE DISPLAY ── */
+.price-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #161616 !important;
+    border: 1px dashed #2a2a2a !important;
+    border-radius: 7px;
+    padding: 14px 18px;
+    margin-top: 14px;
+}
+
+.price-label {
+    font-size: 11px;
+    color: #666666 !important;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.price-value {
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: #22c55e !important;
+}
+
+/* ── PAYMENT SECTION ── */
+.payment-header {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #555555 !important;
+    text-transform: uppercase;
+    border-top: 1px dashed #222222;
+    border-bottom: 1px dashed #222222;
+    padding: 13px 0;
+    margin-bottom: 14px;
+}
+
+/* ── TOTAL ROW ── */
+.total-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 0;
+}
+
+.total-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #f0f0f0 !important;
+    text-transform: uppercase;
+}
+
+.total-value {
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: #e8002d !important;
+}
+
+/* ── CONFIRM BUTTON ── */
+.confirm-btn {
+    width: 100% !important;
+    background: #e8002d !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 16px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    text-transform: uppercase;
+    font-family: 'Segoe UI', system-ui, sans-serif !important;
+}
+
+.confirm-btn:hover:not(:disabled) {
+    background: #b8001f !important;
+    transform: translateY(-1px);
+}
+
+.confirm-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* ── ERROR MESSAGE ── */
+.error-msg {
+    color: #e8002d !important;
+    font-size: 11px;
+    margin-top: 5px;
+    display: block !important;
+}
