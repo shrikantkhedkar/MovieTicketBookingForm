@@ -70,6 +70,7 @@
             </div>
 
             <!-- MOVIE SEARCH (typeahead) -->
+            <!-- ✅ Movie price kadhla — fakta name distoy aata -->
             <div style="margin-bottom:14px;">
                 <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">MOVIE NAME</label>
                 <div style="position:relative;">
@@ -86,13 +87,13 @@
                         <ul style="position:absolute; top:100%; left:0; right:0; background:#1a1a1a; border:1px solid #2a2a2a; border-top:none; border-radius:0 0 7px 7px; max-height:210px; overflow-y:auto; z-index:9999; list-style:none; margin:0; padding:0; box-shadow:0 8px 24px rgba(0,0,0,0.6);">
 
                             <!-- Existing movies (database madhe aahet) -->
+                            <!-- ✅ data-price ani price span kadhla -->
                             <template for:each={filteredMovies} for:item="movie">
                                 <li key={movie.Id}
-                                    style="padding:11px 14px; cursor:pointer; border-bottom:1px solid #222222; display:flex; justify-content:space-between; align-items:center; box-sizing:border-box;"
-                                    data-id={movie.Id} data-name={movie.Name} data-price={movie.Ticket_Price__c}
+                                    style="padding:11px 14px; cursor:pointer; border-bottom:1px solid #222222; display:flex; justify-content:flex-start; align-items:center; box-sizing:border-box;"
+                                    data-id={movie.Id} data-name={movie.Name}
                                     onmousedown={handleMovieSelect}>
                                     <span style="color:#f0f0f0; font-size:13px; font-weight:500;">{movie.Name}</span>
-                                    <span style="color:#22c55e; font-size:12px; font-weight:600;">₹{movie.Ticket_Price__c}</span>
                                 </li>
                             </template>
 
@@ -117,7 +118,6 @@
             </div>
 
             <!-- SHOW TIME -->
-            <!-- ✅ onchange = handleShowTimeChange → seats load होतात -->
             <div style="margin-bottom:14px;">
                 <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">SHOW TIME</label>
                 <select style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; appearance:none; -webkit-appearance:none; font-family:'Segoe UI',system-ui,sans-serif;"
@@ -127,6 +127,22 @@
                         <option key={option.value} value={option.value} style="background:#1a1a1a; color:#f0f0f0;">{option.label}</option>
                     </template>
                 </select>
+            </div>
+
+            <!-- BOOKING DATE -->
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; color:#555555; margin-bottom:7px; text-transform:uppercase;">
+                    BOOKING DATE
+                </label>
+                <input type="date"
+                    style="width:100%; background:#1a1a1a; border:1px solid #2a2a2a; color:#f0f0f0; padding:11px 14px; border-radius:7px; font-size:13px; box-sizing:border-box; display:block; font-family:'Segoe UI',system-ui,sans-serif; color-scheme:dark;"
+                    min={todayDate}
+                    value={formData.bookingDate}
+                    data-field="bookingDate"
+                    onchange={handleDateChange} />
+                <template if:true={dateError}>
+                    <span style="color:#e8002d; font-size:11px; margin-top:5px; display:block;">{dateError}</span>
+                </template>
             </div>
 
             <!-- SEAT COUNTERS -->
@@ -141,7 +157,7 @@
                 </div>
             </div>
             <p style="font-size:10px; color:#444444; text-align:center; margin-top:10px; margin-bottom:0; font-style:italic;">
-                Select Movie + Show Time to see seat availability for that slot
+                Select Movie + Date + Show Time to see seat availability for that slot
             </p>
         </div>
 
@@ -170,6 +186,7 @@
                 </div>
             </div>
 
+            <!-- ✅ Booking cha ticketPrice — Silver/Gold/Platinum nivadlyaver set hoto -->
             <div style="display:flex; justify-content:space-between; align-items:center; background:#161616; border:1px dashed #2a2a2a; border-radius:7px; padding:14px 18px; margin-top:14px;">
                 <span style="font-size:11px; color:#666666; font-weight:600; letter-spacing:1px; text-transform:uppercase;">TICKET PRICE:</span>
                 <span style="font-size:17px; font-weight:700; color:#22c55e;">₹{formData.ticketPrice}</span>
