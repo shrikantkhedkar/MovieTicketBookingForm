@@ -5,6 +5,12 @@
  * BULKIFIED — single ani multiple bookings donhi handle karta yeil.
  * Governor limits, security, validations sagla yethe.
  * 
+ * ✅ UPDATED:
+ *   - Movie cha Ticket_Price__c kadhla query madhun
+ *   - Seat check aata SLOT-WISE hota 
+ *     (Theatre + Movie + Date + ShowTime cha combination ne)
+ *   - Booking object var Ticket_Price__c TASACH ahe (LWC madhun yeto)
+ * 
  * @author  Shrikant Khedkar
  * @date    May 2026
  */
@@ -32,7 +38,7 @@ public with sharing class BookingService {
     
     /**
      * BULK save — multiple bookings ek shot madhe.
-     * Governor limits efficient way ne use karto.
+     * ✅ Slot-wise (Theatre + Movie + Date + ShowTime) seat check.
      */
     public static List<String> saveBookingsBulk(
         List<BookingController.BookingWrapper> dataList
@@ -54,45 +60,98 @@ public with sharing class BookingService {
         }
         
         // ===== 3. Collect unique IDs/emails (bulkification) =====
-        Set<Id> movieIds = new Set<Id>();
+        Set<Id> movieIds   = new Set<Id>();
+        Set<Id> theatreIds = new Set<Id>();
         Set<String> emails = new Set<String>();
-        Map<Id, Integer> seatsRequestedByMovie = new Map<Id, Integer>();
+        
+        // Same slot sathi multiple bookings asle tar seats add kar
+        // Key = movieId|theatreId|showTime|bookingDate
+        Map<String, Integer> requestedBySlot = new Map<String, Integer>();
         
         for (BookingController.BookingWrapper data : dataList) {
             movieIds.add(data.movieId);
+            theatreIds.add(data.theatreId);
             emails.add(data.email.toLowerCase());
             
-            // Same movie sathi multiple bookings asle tar seats add kar
-            Integer existing = seatsRequestedByMovie.containsKey(data.movieId) 
-                ? seatsRequestedByMovie.get(data.movieId) : 0;
-            seatsRequestedByMovie.put(
-                data.movieId, existing + data.numberOfSeats
+            String slotKey = buildSlotKey(
+                data.movieId, data.theatreId, data.showTime, data.bookingDate
             );
+            Integer existing = requestedBySlot.containsKey(slotKey) 
+                ? requestedBySlot.get(slotKey) : 0;
+            requestedBySlot.put(slotKey, existing + data.numberOfSeats);
         }
         
-        // ===== 4. Available seats check (1 SOQL query) =====
+        // ===== 4. SLOT-WISE seat availability check =====
+        // 4a. Theatre capacity ana (1 SOQL — bulkified)
+        Map<Id, Theatre__c> theatreMap = new Map<Id, Theatre__c>([
+            SELECT Id, Name, Theatre_Capacity__c
+            FROM Theatre__c 
+            WHERE Id IN :theatreIds
+            WITH SECURITY_ENFORCED
+        ]);
+        
+        // 4b. Movie names ana — error messages sathi
+        // ✅ Ticket_Price__c kadhla (Movie var aata field nahi)
         Map<Id, Movie__c> movieMap = new Map<Id, Movie__c>([
-            SELECT Id, Name, Available_Seats__c, Ticket_Price__c
+            SELECT Id, Name 
             FROM Movie__c 
             WHERE Id IN :movieIds
             WITH SECURITY_ENFORCED
         ]);
         
-        for (Id movieId : seatsRequestedByMovie.keySet()) {
-            Movie__c movie = movieMap.get(movieId);
+        // 4c. Pratek slot sathi already booked seats count kar (1 SOQL)
+        AggregateResult[] slotBookings = [
+            SELECT Movie__c movieId, Theatre__c theatreId, 
+                   S__c showTime, Booking_Date__c bookingDate,
+                   SUM(Number_of_Seats__c) totalBooked
+            FROM Booking__c
+            WHERE Movie__c IN :movieIds
+              AND Theatre__c IN :theatreIds
+            WITH SECURITY_ENFORCED
+            GROUP BY Movie__c, Theatre__c, S__c, Booking_Date__c
+        ];
+        
+        // Map: slotKey → already booked count
+        Map<String, Integer> bookedBySlot = new Map<String, Integer>();
+        for (AggregateResult ar : slotBookings) {
+            String key = buildSlotKey(
+                (Id)ar.get('movieId'),
+                (Id)ar.get('theatreId'),
+                (String)ar.get('showTime'),
+                (Date)ar.get('bookingDate')
+            );
+            Integer booked = ((Decimal)ar.get('totalBooked')).intValue();
+            bookedBySlot.put(key, booked);
+        }
+        
+        // 4d. Pratek slot sathi: capacity vs (already booked + requested) check
+        for (String slotKey : requestedBySlot.keySet()) {
+            // slotKey format: movieId|theatreId|showTime|bookingDate
+            String[] parts = slotKey.split('\\|');
+            Id mId = (Id) parts[0];
+            Id tId = (Id) parts[1];
             
-            if (movie == null) {
-                throw new BookingException('Movie sapdla nahi.');
+            Theatre__c theatre = theatreMap.get(tId);
+            if (theatre == null) {
+                throw new BookingException('Theatre sapdla nahi.');
             }
             
-            Decimal available = movie.Available_Seats__c != null 
-                ? movie.Available_Seats__c : 0;
-            Integer requested = seatsRequestedByMovie.get(movieId);
+            Movie__c movie = movieMap.get(mId);
+            String movieName = (movie != null) ? movie.Name : 'this movie';
+            
+            Integer capacity = theatre.Theatre_Capacity__c != null 
+                ? theatre.Theatre_Capacity__c.intValue() : 0;
+            Integer alreadyBooked = bookedBySlot.containsKey(slotKey) 
+                ? bookedBySlot.get(slotKey) : 0;
+            Integer requested = requestedBySlot.get(slotKey);
+            Integer available = capacity - alreadyBooked;
+            if (available < 0) available = 0;
             
             if (available < requested) {
                 throw new BookingException(
                     'Faqt ' + available + ' seats available ahet "' + 
-                    movie.Name + '" sathi.'
+                    movieName + '" cha ya slot sathi (' + 
+                    parts[2] + ' on ' + parts[3] + ').'
                 );
             }
         }
@@ -101,6 +160,7 @@ public with sharing class BookingService {
         Map<String, Contact> contactMap = upsertContactsBulk(dataList, emails);
         
         // ===== 6. Bookings build kar (memory madhe) =====
+        // ✅ Ticket_Price__c — Booking object var TASACH ahe (LWC madhun yeto)
         List<Booking__c> bookingsToInsert = new List<Booking__c>();
         
         for (BookingController.BookingWrapper data : dataList) {
@@ -110,11 +170,13 @@ public with sharing class BookingService {
                 Contact__c = con.Id,
                 Movie__c = data.movieId,
                 Theatre__c = data.theatreId,
-                Booking_Date__c = Date.today(),
+                Booking_Date__c = data.bookingDate != null 
+                            ? data.bookingDate 
+                            : Date.today(),
                 S__c = data.showTime,
                 Number_of_Seats__c = data.numberOfSeats,
                 Ticket_Type__c = data.ticketType,
-                Ticket_Price__c = data.ticketPrice,
+                Ticket_Price__c = data.ticketPrice,   // ✅ Booking var save hota
                 Mode_of_Payment__c = data.paymentMode
             ));
         }
@@ -153,6 +215,18 @@ public with sharing class BookingService {
         }
         
         return insertedIds;
+    }
+    
+    
+    // ============================================
+    // PRIVATE: Slot key builder
+    // Theatre + Movie + ShowTime + Date cha unique key
+    // ============================================
+    private static String buildSlotKey(Id movieId, Id theatreId, String showTime, Date bookingDate) {
+        return String.valueOf(movieId) + '|' + 
+               String.valueOf(theatreId) + '|' + 
+               showTime + '|' + 
+               String.valueOf(bookingDate);
     }
     
     
@@ -266,6 +340,12 @@ public with sharing class BookingService {
         }
         if (String.isBlank(data.showTime)) {
             throw new BookingException('Show Time select kara.');
+        }
+        if (data.bookingDate == null) {
+            throw new BookingException('Booking Date select kara.');
+        }
+        if (data.bookingDate < Date.today()) {
+            throw new BookingException('Booking Date cannot be a past date.');
         }
         
         // Ticket

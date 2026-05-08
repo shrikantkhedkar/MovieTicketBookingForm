@@ -37,7 +37,7 @@ public with sharing class BookingController {
             }
             
             return [
-                SELECT Id, Name, Duration__c, Ticket_Price__c, 
+                SELECT Id, Name, Duration__c,
                        Booked_Seat__c, Available_Seats__c,
                        Theatre__c, Theatre__r.Name, 
                        Theatre__r.Theatre_Capacity__c
@@ -102,7 +102,7 @@ public with sharing class BookingController {
             }
             
             List<Movie__c> movies = [
-                SELECT Id, Name, Duration__c, Ticket_Price__c,
+                SELECT Id, Name, Duration__c,
                        Booked_Seat__c, Available_Seats__c,
                        Theatre__c, Theatre__r.Name, 
                        Theatre__r.Theatre_Capacity__c
@@ -121,17 +121,16 @@ public with sharing class BookingController {
 
 
     // ============================================
-    // NEW METHOD: Get booked & available seats
-    // for a specific Movie + Theatre + ShowTime slot
+    // Get booked & available seats
+    // for a specific Movie + Theatre + ShowTime + Date slot
     // ============================================
     @AuraEnabled(cacheable=false)
-    public static SlotSeatInfo getSeatsBySlot(Id movieId, Id theatreId, String showTime) {
+    public static SlotSeatInfo getSeatsBySlot(Id movieId, Id theatreId, String showTime, Date bookingDate) {
         try {
-            if (String.isBlank(movieId) || String.isBlank(theatreId) || String.isBlank(showTime)) {
-                throw new AuraHandledException('Movie, Theatre ani Show Time select kara.');
+            if (String.isBlank(movieId) || String.isBlank(theatreId) || String.isBlank(showTime) || bookingDate == null) {
+                throw new AuraHandledException('Movie, Theatre, Show Time ani Date select kara.');
             }
 
-            // Theatre capacity ana
             List<Theatre__c> theatres = [
                 SELECT Id, Theatre_Capacity__c
                 FROM Theatre__c
@@ -147,19 +146,19 @@ public with sharing class BookingController {
             Integer totalCapacity = (Integer)(theatres[0].Theatre_Capacity__c != null 
                 ? theatres[0].Theatre_Capacity__c : 0);
 
-            // त्या specific slot साठी booking records मधून booked seats count kar
             AggregateResult[] results = [
                 SELECT SUM(Number_of_Seats__c) totalBooked
                 FROM Booking__c
                 WHERE Movie__c = :movieId
                   AND Theatre__c = :theatreId
                   AND S__c = :showTime
+                  AND Booking_Date__c = :bookingDate
                 WITH SECURITY_ENFORCED
             ];
 
             Integer bookedCount = 0;
             if (!results.isEmpty() && results[0].get('totalBooked') != null) {
-                bookedCount = (Integer)(Decimal) results[0].get('totalBooked');
+                bookedCount = ((Decimal) results[0].get('totalBooked')).intValue();
             }
 
             Integer availableCount = totalCapacity - bookedCount;
@@ -191,9 +190,10 @@ public with sharing class BookingController {
     
     // ============================================
     // Create new movie (if not in database)
+    // ✅ Booked_Seat__c kadhla — formula field ahe, write hot nahi
     // ============================================
     @AuraEnabled
-    public static Movie__c createNewMovie(String movieName, Id theatreId, Decimal ticketPrice) {
+    public static Movie__c createNewMovie(String movieName, Id theatreId) {
         try {
             if (String.isBlank(movieName)) {
                 throw new AuraHandledException('Movie name is required.');
@@ -222,17 +222,16 @@ public with sharing class BookingController {
                 throw new AuraHandledException('You do not have permission to create movies.');
             }
             
+            // ✅ Booked_Seat__c SET KARAT NAHI — formula field ahe
             Movie__c newMovie = new Movie__c(
                 Name = movieName.trim(),
                 Theatre__c = theatreId,
-                Ticket_Price__c = ticketPrice != null ? ticketPrice : 250,
-                Duration__c = 2.30,
-                Booked_Seats__c = 0
+                Duration__c = 2.30
             );
             insert newMovie;
             
             return [
-                SELECT Id, Name, Duration__c, Ticket_Price__c,
+                SELECT Id, Name, Duration__c,
                        Booked_Seat__c, Available_Seats__c,
                        Theatre__c, Theatre__r.Name, 
                        Theatre__r.Theatre_Capacity__c
@@ -286,5 +285,6 @@ public with sharing class BookingController {
         @AuraEnabled public Integer numberOfSeats { get; set; }
         @AuraEnabled public String paymentMode    { get; set; }
         @AuraEnabled public Decimal totalAmount   { get; set; }
+        @AuraEnabled public Date    bookingDate   { get; set; } 
     }
 }

@@ -23,6 +23,7 @@ export default class MovieBookingForm extends LightningElement {
     @track emailError     = '';
     @track showTimeOptions = [];
     @track isLoading      = false;
+    @track dateError      = '';
 
     @track formData = {
         firstName    : '',
@@ -35,7 +36,8 @@ export default class MovieBookingForm extends LightningElement {
         ticketType   : '',
         ticketPrice  : 0,
         numberOfSeats: 1,
-        paymentMode  : ''
+        paymentMode  : '',
+        bookingDate  : '',
     };
 
 
@@ -77,7 +79,6 @@ export default class MovieBookingForm extends LightningElement {
         return (seats * price).toFixed(2);
     }
 
-    // "Add new movie" option — fakt jeva exact match nahi database madhe
     get showAddNewOption() {
         if (!this.movieSearchTerm || !this.movieSearchTerm.trim()) return false;
         const lower = this.movieSearchTerm.trim().toLowerCase();
@@ -87,6 +88,14 @@ export default class MovieBookingForm extends LightningElement {
     get noMoviesAtAll() {
         return this.movies.length === 0 &&
                (!this.movieSearchTerm || !this.movieSearchTerm.trim());
+    }
+
+    get todayDate() {
+        const today = new Date();
+        const yyyy  = today.getFullYear();
+        const mm    = String(today.getMonth() + 1).padStart(2, '0');
+        const dd    = String(today.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
     }
 
 
@@ -105,12 +114,19 @@ export default class MovieBookingForm extends LightningElement {
     // ============================================
     handleTheatreChange(event) {
         const theatreId = event.target.value;
-        this.formData = { ...this.formData, theatreId, movieId: '', showTime: '' };
-        this.movieSearchTerm  = '';
-        this.movies           = [];
-        this.filteredMovies   = [];
-        this.bookedSeats      = '--';
-        this.availableSeats   = '--';
+        this.formData = { 
+            ...this.formData, 
+            theatreId, 
+            movieId     : '', 
+            showTime    : '',
+            bookingDate : ''
+        };
+        this.movieSearchTerm       = '';
+        this.movies                = [];
+        this.filteredMovies        = [];
+        this.bookedSeats           = '--';
+        this.availableSeats        = '--';
+        this.dateError             = '';
 
         if (!theatreId) {
             this.isMovieSearchDisabled = true;
@@ -120,8 +136,8 @@ export default class MovieBookingForm extends LightningElement {
         this.isLoading = true;
         getMoviesByTheatre({ theatreId })
             .then(result => {
-                this.movies           = result;
-                this.filteredMovies   = result;
+                this.movies                = result;
+                this.filteredMovies        = result;
                 this.isMovieSearchDisabled = false;
                 if (result.length === 0) {
                     this.showToast('Info', 'No movies yet. Type to add a new one.', 'info');
@@ -137,14 +153,18 @@ export default class MovieBookingForm extends LightningElement {
 
     // ============================================
     // HANDLER: Movie typeahead search
-    // User type karto → filter + dropdown show
+    // ✅ FIX: exact match असल्यास movieId clear होणार नाही
     // ============================================
     handleMovieSearch(event) {
         const searchTerm = event.target.value || '';
         this.movieSearchTerm = searchTerm;
 
-        // Previous selection clear karo
-        if (this.formData.movieId) {
+        // Exact match आहे का check कर — असल्यास movieId clear नको
+        const exactMatch = this.movies.find(
+            m => m.Name.toLowerCase() === searchTerm.toLowerCase()
+        );
+
+        if (!exactMatch && this.formData.movieId) {
             this.formData       = { ...this.formData, movieId: '', showTime: '' };
             this.bookedSeats    = '--';
             this.availableSeats = '--';
@@ -162,36 +182,36 @@ export default class MovieBookingForm extends LightningElement {
         this.showMovieDropdown = true;
     }
 
+    // ✅ FIX: 300ms — mousedown event आधी complete होण्यासाठी
     handleMovieBlur() {
-        setTimeout(() => { this.showMovieDropdown = false; }, 200);
+        setTimeout(() => { this.showMovieDropdown = false; }, 300);
     }
 
 
     // ============================================
-    // HANDLER: Existing movie select (database madhe aahe)
+    // HANDLER: Existing movie select
+    // ✅ FIX: dropdown आधी बंद कर, मग formData update कर
     // ============================================
     handleMovieSelect(event) {
         const movieId   = event.currentTarget.dataset.id;
         const movieName = event.currentTarget.dataset.name;
-        const price     = parseFloat(event.currentTarget.dataset.price) || 0;
 
-        this.movieSearchTerm = movieName;
-        this.formData = { ...this.formData, movieId, ticketPrice: price };
-        this.showMovieDropdown = false;
+        this.showMovieDropdown = false; // ← आधी बंद कर
+        this.movieSearchTerm   = movieName;
 
-        // Seats reset — show time aata select karo
+        this.formData = { ...this.formData, movieId };
+
         this.bookedSeats    = '--';
         this.availableSeats = '--';
 
-        // Show time already selected asel tar lagar seats load karo
-        if (this.formData.showTime) {
+        if (this.formData.showTime && this.formData.bookingDate) {
             this.loadSlotSeats();
         }
     }
 
 
     // ============================================
-    // HANDLER: Add New Movie (database madhe nahi)
+    // HANDLER: Add New Movie
     // ============================================
     handleAddNewMovie() {
         const newMovieName = this.movieSearchTerm.trim();
@@ -205,42 +225,32 @@ export default class MovieBookingForm extends LightningElement {
             return;
         }
 
-        // Safety check — exact match aahe tar create nako, select karo
         const lower    = newMovieName.toLowerCase();
         const existing = this.movies.find(m => m.Name.toLowerCase() === lower);
         if (existing) {
-            this.movieSearchTerm = existing.Name;
-            this.formData = {
-                ...this.formData,
-                movieId    : existing.Id,
-                ticketPrice: existing.Ticket_Price__c || 250
-            };
             this.showMovieDropdown = false;
-            if (this.formData.showTime) this.loadSlotSeats();
+            this.movieSearchTerm   = existing.Name;
+            this.formData = { ...this.formData, movieId: existing.Id };
+            if (this.formData.showTime && this.formData.bookingDate) this.loadSlotSeats();
             this.showToast('Info', `"${existing.Name}" already exists. Selected!`, 'info');
             return;
         }
 
         // eslint-disable-next-line no-alert
-        if (!confirm(`Create new movie "${newMovieName}" with default price ₹250?`)) return;
+        if (!confirm(`Create new movie "${newMovieName}"?`)) return;
 
         this.isLoading         = true;
         this.showMovieDropdown = false;
 
-        createNewMovie({ movieName: newMovieName, theatreId: this.formData.theatreId, ticketPrice: 250 })
+        createNewMovie({ movieName: newMovieName, theatreId: this.formData.theatreId })
             .then(newMovie => {
-                this.movies         = [...this.movies, newMovie];
-                this.filteredMovies = this.movies;
+                this.movies          = [...this.movies, newMovie];
+                this.filteredMovies  = this.movies;
                 this.movieSearchTerm = newMovie.Name;
-                this.formData = {
-                    ...this.formData,
-                    movieId    : newMovie.Id,
-                    ticketPrice: newMovie.Ticket_Price__c || 250
-                };
-                // Navi movie → show time select kela asel tar seats load karo
+                this.formData = { ...this.formData, movieId: newMovie.Id };
                 this.bookedSeats    = '--';
                 this.availableSeats = '--';
-                if (this.formData.showTime) this.loadSlotSeats();
+                if (this.formData.showTime && this.formData.bookingDate) this.loadSlotSeats();
                 this.showToast('Success!', `Movie "${newMovie.Name}" created & selected!`, 'success');
             })
             .catch(error => {
@@ -253,7 +263,7 @@ export default class MovieBookingForm extends LightningElement {
 
 
     // ============================================
-    // HANDLER: Show Time change → seats load karo
+    // HANDLER: Show Time change
     // ============================================
     handleShowTimeChange(event) {
         const showTime = event.target.value;
@@ -270,15 +280,48 @@ export default class MovieBookingForm extends LightningElement {
 
 
     // ============================================
+    // HANDLER: Date change
+    // ============================================
+    handleDateChange(event) {
+        const dateStr = event.target.value;
+        this.formData = { ...this.formData, bookingDate: dateStr };
+        this.dateError = '';
+
+        if (!dateStr) return;
+
+        const selected = new Date(dateStr);
+        const today    = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selected < today) {
+            this.dateError = 'Booking Date cannot be a past date.';
+            this.formData  = { ...this.formData, bookingDate: '' };
+            this.bookedSeats    = '--';
+            this.availableSeats = '--';
+            return;
+        }
+
+        if (this.formData.movieId && this.formData.showTime) {
+            this.loadSlotSeats();
+        }
+    }
+
+
+    // ============================================
     // CORE: Slot-wise seats load
-    // Movie + Theatre + ShowTime → Booked + Available
     // ============================================
     loadSlotSeats() {
-        const { movieId, theatreId, showTime } = this.formData;
-        if (!movieId || !theatreId || !showTime) return;
+        const { movieId, theatreId, showTime, bookingDate } = this.formData;
+        if (!movieId || !theatreId || !showTime || !bookingDate) return;
+
+        const apexDate = new Date(bookingDate);
+        const yyyy = apexDate.getFullYear();
+        const mm   = String(apexDate.getMonth() + 1).padStart(2, '0');
+        const dd   = String(apexDate.getDate()).padStart(2, '0');
+        const formattedDate = `${yyyy}-${mm}-${dd}`;
 
         this.isLoading = true;
-        getSeatsBySlot({ movieId, theatreId, showTime })
+        getSeatsBySlot({ movieId, theatreId, showTime, bookingDate: formattedDate })
             .then(result => {
                 if (result) {
                     this.bookedSeats    = result.bookedSeats;
@@ -296,7 +339,7 @@ export default class MovieBookingForm extends LightningElement {
 
 
     // ============================================
-    // HANDLER: Ticket Type → price set
+    // HANDLER: Ticket Type
     // ============================================
     handleTicketTypeChange(event) {
         const type = event.target.value;
@@ -344,20 +387,27 @@ export default class MovieBookingForm extends LightningElement {
     // ============================================
     validateForm() {
         const d = this.formData;
-        if (!d.firstName?.trim())               { this.showToast('Error', 'First Name is required', 'error'); return false; }
-        if (!d.lastName?.trim())                { this.showToast('Error', 'Last Name is required', 'error'); return false; }
-        if (!d.email?.trim())                   { this.showToast('Error', 'Email is required', 'error'); return false; }
-        if (!this.validateEmail())              { this.showToast('Error', 'Enter a valid email', 'error'); return false; }
-        if (!d.phone || d.phone.toString().replace(/\D/g, '').length !== 10) { this.showToast('Error', 'Enter a valid 10-digit phone', 'error'); return false; }
-        if (!d.theatreId)                       { this.showToast('Error', 'Please select a theatre', 'error'); return false; }
-        if (!d.movieId)                         { this.showToast('Error', 'Please select or add a movie', 'error'); return false; }
-        if (!d.showTime)                        { this.showToast('Error', 'Please select show time', 'error'); return false; }
-        if (!d.ticketType)                      { this.showToast('Error', 'Please select ticket type', 'error'); return false; }
-        if (!d.numberOfSeats || d.numberOfSeats < 1) { this.showToast('Error', 'Select at least 1 seat', 'error'); return false; }
-        if (!d.paymentMode)                     { this.showToast('Error', 'Please select payment mode', 'error'); return false; }
+        if (!d.firstName?.trim())   { this.showToast('Error', 'First Name is required', 'error');        return false; }
+        if (!d.lastName?.trim())    { this.showToast('Error', 'Last Name is required', 'error');         return false; }
+        if (!d.email?.trim())       { this.showToast('Error', 'Email is required', 'error');             return false; }
+        if (!this.validateEmail())  { this.showToast('Error', 'Enter a valid email', 'error');           return false; }
+        if (!d.phone || d.phone.toString().replace(/\D/g, '').length !== 10) {
+            this.showToast('Error', 'Enter a valid 10-digit phone', 'error');                            return false;
+        }
+        if (!d.theatreId)           { this.showToast('Error', 'Please select a theatre', 'error');      return false; }
+        if (!d.movieId)             { this.showToast('Error', 'Please select or add a movie', 'error'); return false; }
+        if (!d.showTime)            { this.showToast('Error', 'Please select show time', 'error');      return false; }
+        if (!d.bookingDate)         { this.showToast('Error', 'Please select booking date', 'error');   return false; }
+        const selectedDate = new Date(d.bookingDate);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (selectedDate < today)   { this.showToast('Error', 'Booking Date cannot be a past date', 'error'); return false; }
+        if (!d.ticketType)          { this.showToast('Error', 'Please select ticket type', 'error');    return false; }
+        if (!d.numberOfSeats || d.numberOfSeats < 1) {
+            this.showToast('Error', 'Select at least 1 seat', 'error');                                 return false;
+        }
+        if (!d.paymentMode)         { this.showToast('Error', 'Please select payment mode', 'error');   return false; }
         if (typeof this.availableSeats === 'number' && d.numberOfSeats > this.availableSeats) {
-            this.showToast('Error', `Only ${this.availableSeats} seats available for this show`, 'error');
-            return false;
+            this.showToast('Error', `Only ${this.availableSeats} seats available for this show`, 'error'); return false;
         }
         return true;
     }
@@ -378,6 +428,7 @@ export default class MovieBookingForm extends LightningElement {
             theatreId    : this.formData.theatreId,
             movieId      : this.formData.movieId,
             showTime     : this.formData.showTime,
+            bookingDate  : this.formData.bookingDate,
             ticketType   : this.formData.ticketType,
             ticketPrice  : this.formData.ticketPrice,
             numberOfSeats: parseInt(this.formData.numberOfSeats),
@@ -388,7 +439,6 @@ export default class MovieBookingForm extends LightningElement {
         createBooking({ bookingData })
             .then(bookingId => {
                 this.showToast('Booking Confirmed! 🎉', `Booking saved. ID: ${bookingId}`, 'success');
-                // ✅ Booking successful → same slot che updated seats reload karo
                 this.loadSlotSeats();
                 this.resetFormKeepSlot();
             })
@@ -407,7 +457,7 @@ export default class MovieBookingForm extends LightningElement {
     resetForm() {
         this.formData = {
             firstName: '', lastName: '', email: '', phone: '',
-            theatreId: '', movieId: '', showTime: '',
+            theatreId: '', movieId: '', showTime: '', bookingDate: '',
             ticketType: '', ticketPrice: 0, numberOfSeats: 1, paymentMode: ''
         };
         this.movieSearchTerm       = '';
@@ -417,13 +467,17 @@ export default class MovieBookingForm extends LightningElement {
         this.availableSeats        = '--';
         this.isMovieSearchDisabled = true;
         this.emailError            = '';
+        this.dateError             = '';
         this.template.querySelectorAll('select').forEach(s => { s.value = ''; });
         this.template.querySelectorAll('input').forEach(i => {
             if (i.type !== 'number') i.value = '';
         });
     }
 
-    // ✅ Booking successful → fakt personal fields reset, slot same rahude
+
+    // ============================================
+    // UTILITY: Reset — slot same ठेव
+    // ============================================
     resetFormKeepSlot() {
         this.formData = {
             ...this.formData,
@@ -432,10 +486,12 @@ export default class MovieBookingForm extends LightningElement {
             email        : '',
             phone        : '',
             ticketType   : '',
+            ticketPrice  : 0,
             numberOfSeats: 1,
             paymentMode  : ''
         };
         this.emailError = '';
+        this.dateError  = '';
     }
 
 

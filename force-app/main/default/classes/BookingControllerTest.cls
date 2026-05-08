@@ -2,10 +2,7 @@
  * BookingControllerTest
  * --------------------------------------------------
  * Comprehensive test class — 90%+ coverage.
- * Positive + Negative + Bulk + Governor limit scenarios.
- * 
- * @author  Shrikant Khedkar
- * @date    May 2026
+ * ✅ Booked_Seat__c kadhla — formula field ahe, write hot nahi
  */
 @isTest
 private class BookingControllerTest {
@@ -21,12 +18,11 @@ private class BookingControllerTest {
         );
         insert theatre;
         
+        // ✅ Booked_Seat__c SET KARAT NAHI — formula field ahe
         Movie__c movie = new Movie__c(
             Name = 'Test Movie',
             Theatre__c = theatre.Id,
-            Duration__c = 2.30,
-            Ticket_Price__c = 250,
-            Booked_Seats__c = 0
+            Duration__c = 2.30
         );
         insert movie;
     }
@@ -102,8 +98,10 @@ private class BookingControllerTest {
         List<Contact> contacts = [SELECT Id FROM Contact WHERE Email = 'test@example.com'];
         System.assertEquals(1, contacts.size(), 'Contact create zala pahije');
         
-        List<Booking__c> bookings = [SELECT Id FROM Booking__c];
+        List<Booking__c> bookings = [SELECT Id, Ticket_Price__c FROM Booking__c];
         System.assertEquals(1, bookings.size(), 'Booking create zala pahije');
+        System.assertEquals(250, bookings[0].Ticket_Price__c, 
+            'Booking var Ticket_Price__c save zala pahije');
     }
     
     @isTest
@@ -128,34 +126,30 @@ private class BookingControllerTest {
         System.assertEquals('Shrikant', updated.FirstName, 
             'Existing contact update zala pahije');
         
-        // Faqt 1 contact asla pahije (duplicate nako)
         Integer count = [SELECT COUNT() FROM Contact WHERE Email = 'test@example.com'];
         System.assertEquals(1, count, 'Duplicate contact nako');
     }
     
     
     // ============================================
-    // BULK TEST — 50 bookings ek shot madhe
+    // BULK TEST
     // ============================================
     @isTest
     static void testBulkBookings() {
-        // Bigger theatre + movie sathi
         Theatre__c bigTheatre = new Theatre__c(
             Name = 'Big Theatre',
             Theatre_Capacity__c = 500
         );
         insert bigTheatre;
         
+        // ✅ Booked_Seat__c SET KARAT NAHI — formula field ahe
         Movie__c bigMovie = new Movie__c(
             Name = 'Bulk Movie',
             Theatre__c = bigTheatre.Id,
-            Duration__c = 2.30,
-            Ticket_Price__c = 250,
-            Booked_Seats__c = 0
+            Duration__c = 2.30
         );
         insert bigMovie;
         
-        // 50 bookings prepare kar
         List<BookingController.BookingWrapper> wrappers = 
             new List<BookingController.BookingWrapper>();
         
@@ -174,18 +168,78 @@ private class BookingControllerTest {
         
         System.assertEquals(50, ids.size(), '50 bookings save zali pahijet');
         
-        // Verify saglya bookings
         Integer bookingCount = [SELECT COUNT() FROM Booking__c];
         System.assertEquals(50, bookingCount);
         
-        // Verify saglya contacts
         Integer contactCount = [SELECT COUNT() FROM Contact WHERE Email LIKE 'bulk%'];
         System.assertEquals(50, contactCount);
     }
     
     
     // ============================================
-    // NEGATIVE TESTS — Validations
+    // SLOT-WISE BOOKING TEST
+    // ============================================
+    @isTest
+    static void testSlotWiseBooking_DifferentShowTimes() {
+        Theatre__c t = [SELECT Id FROM Theatre__c LIMIT 1];
+        Movie__c m = [SELECT Id FROM Movie__c LIMIT 1];
+        Date today = Date.today();
+        
+        BookingController.BookingWrapper booking6PM = buildValidBooking(t.Id, m.Id);
+        booking6PM.showTime = '6:00 PM';
+        booking6PM.bookingDate = today;
+        booking6PM.numberOfSeats = 2;
+        booking6PM.email = 'user6pm@example.com';
+        
+        BookingController.BookingWrapper booking9PM = buildValidBooking(t.Id, m.Id);
+        booking9PM.showTime = '9:00 PM';
+        booking9PM.bookingDate = today;
+        booking9PM.numberOfSeats = 3;
+        booking9PM.email = 'user9pm@example.com';
+        
+        Test.startTest();
+        String id6PM = BookingController.createBooking(booking6PM);
+        String id9PM = BookingController.createBooking(booking9PM);
+        Test.stopTest();
+        
+        System.assertNotEquals(null, id6PM, '6PM booking success vhayli pahije');
+        System.assertNotEquals(null, id9PM, '9PM booking success vhayli pahije');
+    }
+    
+    
+    // ============================================
+    // getSeatsBySlot TEST
+    // ============================================
+    @isTest
+    static void testGetSeatsBySlot() {
+        Theatre__c t = [SELECT Id FROM Theatre__c LIMIT 1];
+        Movie__c m = [SELECT Id FROM Movie__c LIMIT 1];
+        Date today = Date.today();
+        
+        BookingController.BookingWrapper data = buildValidBooking(t.Id, m.Id);
+        data.showTime = '6:00 PM';
+        data.bookingDate = today;
+        data.numberOfSeats = 5;
+        BookingController.createBooking(data);
+        
+        Test.startTest();
+        BookingController.SlotSeatInfo info6PM = BookingController.getSeatsBySlot(
+            m.Id, t.Id, '6:00 PM', today
+        );
+        BookingController.SlotSeatInfo info9PM = BookingController.getSeatsBySlot(
+            m.Id, t.Id, '9:00 PM', today
+        );
+        Test.stopTest();
+        
+        System.assertEquals(5, info6PM.bookedSeats, '6PM la 5 booked');
+        System.assertEquals(95, info6PM.availableSeats, '6PM la 95 available');
+        System.assertEquals(0, info9PM.bookedSeats, '9PM la 0 booked');
+        System.assertEquals(100, info9PM.availableSeats, '9PM la 100 available');
+    }
+    
+    
+    // ============================================
+    // NEGATIVE TESTS
     // ============================================
     
     @isTest
@@ -254,23 +308,20 @@ private class BookingControllerTest {
     // ============================================
     @isTest
     static void testInsufficientSeats() {
-        // Small capacity theatre
         Theatre__c smallTheatre = new Theatre__c(
             Name = 'Small',
             Theatre_Capacity__c = 5
         );
         insert smallTheatre;
         
+        // ✅ Booked_Seat__c SET KARAT NAHI — formula field ahe
         Movie__c smallMovie = new Movie__c(
             Name = 'Small Movie',
             Theatre__c = smallTheatre.Id,
-            Duration__c = 2.30,
-            Ticket_Price__c = 250,
-            Booked_Seats__c = 0
+            Duration__c = 2.30
         );
         insert smallMovie;
         
-        // Aadhi 4 seats book kar
         BookingController.BookingWrapper first = buildValidBooking(
             smallTheatre.Id, smallMovie.Id
         );
@@ -278,7 +329,6 @@ private class BookingControllerTest {
         first.email = 'first@example.com';
         BookingController.createBooking(first);
         
-        // Aata 3 seats book karaycha try kar (faqt 1 available ahe)
         BookingController.BookingWrapper second = buildValidBooking(
             smallTheatre.Id, smallMovie.Id
         );
@@ -293,7 +343,7 @@ private class BookingControllerTest {
             exceptionThrown = true;
             System.assert(
                 e.getMessage().contains('available'), 
-                'Insufficient seats message yaychi'
+                'Insufficient seats message yaychi: ' + e.getMessage()
             );
         }
         Test.stopTest();
@@ -342,19 +392,15 @@ private class BookingControllerTest {
         data.numberOfSeats = 2;
         data.paymentMode = 'UPI';
         data.totalAmount = 500;
+        data.bookingDate = Date.today();
         return data;
     }
     
-    /**
-     * Generic validation test runner.
-     * Field name + invalid value de, exception expect karto.
-     */
     private static void runValidationTest(String fieldName, Object invalidValue) {
         Theatre__c t = [SELECT Id FROM Theatre__c LIMIT 1];
         Movie__c m = [SELECT Id FROM Movie__c LIMIT 1];
         BookingController.BookingWrapper data = buildValidBooking(t.Id, m.Id);
         
-        // Reflection sarkha — field set kar
         if (fieldName == 'firstName') data.firstName = (String) invalidValue;
         else if (fieldName == 'lastName') data.lastName = (String) invalidValue;
         else if (fieldName == 'email') data.email = (String) invalidValue;
